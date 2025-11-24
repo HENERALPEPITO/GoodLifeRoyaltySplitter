@@ -1,0 +1,4 @@
+{
+  "name": "RoyaltySplitter",
+  "description": "A client-side utility to process royalty CSV files, grouping data by song composer and exporting individual reports."
+}
