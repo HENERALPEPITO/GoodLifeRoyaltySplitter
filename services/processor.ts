@@ -4,8 +4,77 @@ import { ProcessedComposerData, ProcessingStats, RawCsvRow } from '../types';
 
 export const MANDATORY_COLUMN = "Song Composer(s)";
 
+// Reference list of known composers
+const KNOWN_COMPOSERS = [
+  "Almos Balla",
+  "Andrew Meschac",
+  "Utkarsh Vaishnav",
+  "Fotis Mylonas",
+  "Moises Abraham Monasterio",
+  "Gustavo Dias Leffa",
+  "Ion Purice",
+  "Oybek Jabborov",
+  "Anderson Santos de Paula",
+  "Noel Ivan Montemayor",
+  "LATIN HOUSE GANG",
+  "Andrew Sho Neville",
+  "Jesus Enrique Fernandez Sanchez",
+  "Milton Sabas Martinez Santos",
+  "Andres Romario Rubio Manzano",
+  "Ian Michael Bernal Moreira",
+  "Raul Ivan Garcia Marin",
+  "Jesus Alberto Lopez Vazquez",
+  "Norinobu Yu",
+  "Jorge Pardo Cordero"
+];
+
 const normalizeFilename = (name: string): string => {
   return name.toLowerCase().replace(/ /g, "") + "_royalties.csv";
+};
+
+// Normalize text for comparison (remove accents, lowercase, trim)
+const normalizeForComparison = (text: string): string => {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .toLowerCase()
+    .trim();
+};
+
+// Find the actual composer name from a potentially messy string
+const findActualComposer = (rawComposerText: string): string => {
+  const normalized = normalizeForComparison(rawComposerText);
+  
+  // Try to find a match from known composers
+  for (const knownComposer of KNOWN_COMPOSERS) {
+    const normalizedKnown = normalizeForComparison(knownComposer);
+    
+    // Check if the known composer name appears in the raw text
+    if (normalized.includes(normalizedKnown)) {
+      return knownComposer; // Return the clean, known name
+    }
+  }
+  
+  // If no match found in known list, try to extract the first name
+  // Split by & or common separators and take the first meaningful part
+  const parts = rawComposerText.split(/\s*&\s*/);
+  if (parts.length > 0) {
+    const firstPart = parts[0].trim();
+    
+    // Check if this first part matches any known composer (partial match)
+    for (const knownComposer of KNOWN_COMPOSERS) {
+      const normalizedKnown = normalizeForComparison(knownComposer);
+      const normalizedFirst = normalizeForComparison(firstPart);
+      
+      if (normalizedKnown.includes(normalizedFirst) || normalizedFirst.includes(normalizedKnown)) {
+        return knownComposer;
+      }
+    }
+    
+    return firstPart; // Return the first part if no match
+  }
+  
+  return rawComposerText.trim() || "Unknown Composer";
 };
 
 // Helper to read file to raw data
@@ -36,7 +105,6 @@ export const parseFileToRawData = (file: File): Promise<{ headers: string[], dat
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           
-          // raw: false ensures everything is treated as text/general to avoid date parsing issues initially
           const jsonData = XLSX.utils.sheet_to_json<RawCsvRow>(worksheet, { defval: "" });
           
           if (jsonData.length > 0) {
@@ -65,10 +133,12 @@ export const processRawData = (
       const groupMap = new Map<string, RawCsvRow[]>();
 
       rawData.forEach((row) => {
-        // Group by Song Composer(s)
-        // We cast to string to handle potential numbers from Excel parsing
+        // Get the raw composer text
         const rawComposer = row[MANDATORY_COLUMN];
-        const composer = rawComposer ? String(rawComposer).trim() : "Unknown Composer";
+        const rawComposerText = rawComposer ? String(rawComposer).trim() : "Unknown Composer";
+        
+        // Find the actual, normalized composer name
+        const composer = findActualComposer(rawComposerText);
         
         if (!groupMap.has(composer)) {
           groupMap.set(composer, []);
@@ -77,7 +147,6 @@ export const processRawData = (
         // Filter columns
         const filteredRow: RawCsvRow = {};
         columnsToKeep.forEach(col => {
-          // Handle potential missing values or type mismatches
           const val = row[col];
           filteredRow[col] = (val === null || val === undefined) ? "" : String(val);
         });
@@ -115,7 +184,6 @@ export const processRawData = (
 };
 
 export const generateCsvContent = (rows: RawCsvRow[], columns: string[]): string => {
-  // Use PapaParse unparse to create tab-separated content
   return Papa.unparse(rows, {
     delimiter: "\t",
     header: true,
