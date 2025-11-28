@@ -6,7 +6,7 @@ import JSZip from 'jszip';
 import FileUpload from './components/FileUpload';
 import ComposerCard from './components/ArtistCard';
 import ColumnSelector from './components/ColumnSelector';
-import { parseFileToRawData, processRawData, generateCsvContent, MANDATORY_COLUMN } from './services/processor';
+import { parseFileToRawData, processRawData, generateCsvContent, MANDATORY_COLUMN, ESSENTIAL_COLUMNS } from './services/processor';
 import { AppState, ProcessedComposerData, ProcessingStats, RawCsvRow } from './types';
 
 function App() {
@@ -40,8 +40,9 @@ function App() {
       setAvailableColumns(headers);
       setRawData(data);
       
-      // Default: Select all columns
-      setSelectedColumns(headers);
+      // Default: Select only essential columns that exist in the file
+      const essentialColumnsInFile = headers.filter(col => ESSENTIAL_COLUMNS.includes(col));
+      setSelectedColumns(essentialColumnsInFile);
       
       setAppState('COLUMN_SELECTION');
     } catch (error) {
@@ -141,15 +142,6 @@ function App() {
         
         {/* Header */}
         <div className="text-center mb-12">
-          {/* <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-sm mb-6 border border-slate-100"
-          >
-            <Sparkles className="w-6 h-6 text-indigo-500 mr-2" />
-            <span className="font-bold text-slate-800 tracking-tight">RoyaltySplitter</span>
-          </motion.div> */}
-          
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
             Split Royalties by Good Life
           </h1>

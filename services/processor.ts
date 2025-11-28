@@ -7,7 +7,8 @@ export const MANDATORY_COLUMN = "Song Composer(s)";
 // Reference list of known composers
 const KNOWN_COMPOSERS = [
   "Almos Balla",
-  "Andrew Meschac",
+  "MESHACH ANDRAWES",
+  "FELIX SCHUBERT",
   "Utkarsh Vaishnav",
   "Fotis Mylonas",
   "Moises Abraham Monasterio",
@@ -16,17 +17,69 @@ const KNOWN_COMPOSERS = [
   "Oybek Jabborov",
   "Anderson Santos de Paula",
   "Noel Ivan Montemayor",
-  "LATIN HOUSE GANG",
   "Andrew Sho Neville",
   "Jesus Enrique Fernandez Sanchez",
   "Milton Sabas Martinez Santos",
   "Andres Romario Rubio Manzano",
+  "LATIN HOUSE GANG",
   "Ian Michael Bernal Moreira",
   "Raul Ivan Garcia Marin",
   "Jesus Alberto Lopez Vazquez",
   "Norinobu Yu",
-  "Jorge Pardo Cordero"
+  "Jorge Pardo Cordero",
+  "DMITRY BYSTROV"
 ];
+
+const OUTLIERS_GROUP = "Good Life Composers Outliers";
+
+// Column mapping from input to output
+const COLUMN_MAPPING: { [key: string]: string } = {
+  "Date From": "DATE FROM",
+  "Date": "DATE TO",
+  "Song Title": "TITLE",
+  "Song Composer(s)": "COMPOSER",
+  "Territory": "TERRITORY",
+  "Exploitation Source Name": "SOURCE",
+  "Usage Count": "COUNT",
+  "Gross Amount": "GROSS AMOUNT",
+  "Administration Amount": "ADMIN %",
+  "Amount": "NET AMOUNT"
+};
+
+// Essential columns that should be selected by default
+export const ESSENTIAL_COLUMNS = [
+  "Date From",
+  "Date",
+  "Song Title",
+  "Song Composer(s)",
+  "Territory",
+  "Exploitation Source Name",
+  "Usage Count",
+  "Gross Amount",
+  "Administration Amount",
+  "Amount"
+];
+
+// Columns that contain numeric values to convert from . to ,
+const NUMERIC_COLUMNS = [
+  "Usage Count",
+  "Gross Amount",
+  "Administration Amount",
+  "Amount"
+];
+
+// Convert numeric values from period to comma decimal separator
+const convertNumberFormat = (value: string): string => {
+  if (!value || value.trim() === "") return value;
+  
+  // Check if it's a number (with optional decimal point)
+  const numMatch = value.match(/^-?\d+\.?\d*$/);
+  if (numMatch) {
+    return value.replace('.', ',');
+  }
+  
+  return value;
+};
 
 const normalizeFilename = (name: string): string => {
   return name.toLowerCase().replace(/ /g, "") + "_royalties.csv";
@@ -55,26 +108,8 @@ const findActualComposer = (rawComposerText: string): string => {
     }
   }
   
-  // If no match found in known list, try to extract the first name
-  // Split by & or common separators and take the first meaningful part
-  const parts = rawComposerText.split(/\s*&\s*/);
-  if (parts.length > 0) {
-    const firstPart = parts[0].trim();
-    
-    // Check if this first part matches any known composer (partial match)
-    for (const knownComposer of KNOWN_COMPOSERS) {
-      const normalizedKnown = normalizeForComparison(knownComposer);
-      const normalizedFirst = normalizeForComparison(firstPart);
-      
-      if (normalizedKnown.includes(normalizedFirst) || normalizedFirst.includes(normalizedKnown)) {
-        return knownComposer;
-      }
-    }
-    
-    return firstPart; // Return the first part if no match
-  }
-  
-  return rawComposerText.trim() || "Unknown Composer";
+  // If no match found in known list, place in outliers
+  return OUTLIERS_GROUP;
 };
 
 // Helper to read file to raw data
@@ -144,12 +179,24 @@ export const processRawData = (
           groupMap.set(composer, []);
         }
 
-        // Filter columns
+        // Filter columns and apply transformations
         const filteredRow: RawCsvRow = {};
         columnsToKeep.forEach(col => {
           const val = row[col];
-          filteredRow[col] = (val === null || val === undefined) ? "" : String(val);
+          let cellValue = (val === null || val === undefined) ? "" : String(val);
+          
+          // Convert numeric formats if this is a numeric column
+          if (NUMERIC_COLUMNS.includes(col)) {
+            cellValue = convertNumberFormat(cellValue);
+          }
+          
+          // Map column name for output
+          const outputColumnName = COLUMN_MAPPING[col] || col;
+          filteredRow[outputColumnName] = cellValue;
         });
+
+        // Add ARTIST column (empty for now, can be filled later)
+        filteredRow["ARTIST"] = "";
 
         groupMap.get(composer)?.push(filteredRow);
       });
@@ -164,8 +211,12 @@ export const processRawData = (
         };
       });
 
-      // Sort alphabetically by composer for better UX
-      processedData.sort((a, b) => a.composerName.localeCompare(b.composerName));
+      // Sort: Outliers last, then alphabetically
+      processedData.sort((a, b) => {
+        if (a.composerName === OUTLIERS_GROUP) return 1;
+        if (b.composerName === OUTLIERS_GROUP) return -1;
+        return a.composerName.localeCompare(b.composerName);
+      });
 
       const endTime = performance.now();
       
@@ -184,9 +235,24 @@ export const processRawData = (
 };
 
 export const generateCsvContent = (rows: RawCsvRow[], columns: string[]): string => {
+  // Map column names to output names and define the output order
+  const outputOrder = [
+    "DATE FROM",
+    "DATE TO", 
+    "TITLE",
+    "COMPOSER",
+    "TERRITORY",
+    "SOURCE",
+    "COUNT",
+    "GROSS AMOUNT",
+    "ADMIN %",
+    "NET AMOUNT",
+    "ARTIST"
+  ];
+  
   return Papa.unparse(rows, {
     delimiter: "\t",
     header: true,
-    columns: columns
+    columns: outputOrder
   });
 };
