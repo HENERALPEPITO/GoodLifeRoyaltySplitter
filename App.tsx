@@ -41,7 +41,10 @@ function App() {
       setRawData(data);
       
       // Default: Select only essential columns that exist in the file
-      const essentialColumnsInFile = headers.filter(col => ESSENTIAL_COLUMNS.includes(col));
+      // Use trimmed comparison to handle whitespace variations in CSV headers
+      const essentialColumnsInFile = headers.filter(col => 
+        ESSENTIAL_COLUMNS.some(essential => col.trim() === essential.trim())
+      );
       setSelectedColumns(essentialColumnsInFile);
       
       setAppState('COLUMN_SELECTION');

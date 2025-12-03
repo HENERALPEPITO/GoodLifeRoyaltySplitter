@@ -34,8 +34,8 @@ const OUTLIERS_GROUP = "Good Life Composers Outliers";
 
 // Column mapping from input to output
 const COLUMN_MAPPING: { [key: string]: string } = {
-  "Date From": "DATE FROM",
-  "Date": "DATE TO",
+  "Date From (MM/YYYY)": "Date From (MM/YYYY)",
+  "Date To (MM/YYYY)": "Date To (MM/YYYY)",
   "Song Title": "TITLE",
   "Song Composer(s)": "COMPOSER",
   "Territory": "TERRITORY",
@@ -48,8 +48,8 @@ const COLUMN_MAPPING: { [key: string]: string } = {
 
 // Essential columns that should be selected by default
 export const ESSENTIAL_COLUMNS = [
-  "Date From",
-  "Date",
+  "Date From (MM/YYYY)",
+  "Date To (MM/YYYY)",
   "Song Title",
   "Song Composer(s)",
   "Territory",
@@ -59,27 +59,6 @@ export const ESSENTIAL_COLUMNS = [
   "Administration Amount",
   "Amount"
 ];
-
-// Columns that contain numeric values to convert from . to ,
-const NUMERIC_COLUMNS = [
-  "Usage Count",
-  "Gross Amount",
-  "Administration Amount",
-  "Amount"
-];
-
-// Convert numeric values from period to comma decimal separator
-const convertNumberFormat = (value: string): string => {
-  if (!value || value.trim() === "") return value;
-  
-  // Check if it's a number (with optional decimal point)
-  const numMatch = value.match(/^-?\d+\.?\d*$/);
-  if (numMatch) {
-    return value.replace('.', ',');
-  }
-  
-  return value;
-};
 
 const normalizeFilename = (name: string): string => {
   return name.toLowerCase().replace(/ /g, "") + "_royalties.csv";
@@ -185,11 +164,6 @@ export const processRawData = (
           const val = row[col];
           let cellValue = (val === null || val === undefined) ? "" : String(val);
           
-          // Convert numeric formats if this is a numeric column
-          if (NUMERIC_COLUMNS.includes(col)) {
-            cellValue = convertNumberFormat(cellValue);
-          }
-          
           // Map column name for output
           const outputColumnName = COLUMN_MAPPING[col] || col;
           filteredRow[outputColumnName] = cellValue;
@@ -237,8 +211,8 @@ export const processRawData = (
 export const generateCsvContent = (rows: RawCsvRow[], columns: string[]): string => {
   // Map column names to output names and define the output order
   const outputOrder = [
-    "DATE FROM",
-    "DATE TO", 
+    "Date From (MM/YYYY)",
+    "Date To (MM/YYYY)", 
     "TITLE",
     "COMPOSER",
     "TERRITORY",
