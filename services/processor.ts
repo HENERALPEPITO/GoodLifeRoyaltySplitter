@@ -64,19 +64,17 @@ const normalizeFilename = (name: string): string => {
   return name.toLowerCase().replace(/ /g, "") + "_royalties.csv";
 };
 
-// Normalize text for comparison (remove accents, lowercase, trim, remove special chars)
+// Normalize text for comparison (remove accents, lowercase, trim)
 const normalizeForComparison = (text: string): string => {
   return text
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Remove accents
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-    .replace(/\s+/g, ' ') // Normalize whitespace
     .trim();
 };
 
 // Find the actual composer name from a potentially messy string
-const findActualComposer = (rawComposerText: string): string => {
+const findActualComposer = (rawComposerText: string): { groupName: string; cleanName: string } => {
   const normalized = normalizeForComparison(rawComposerText);
   
   // Try to find a match from known composers
@@ -84,38 +82,20 @@ const findActualComposer = (rawComposerText: string): string => {
     const normalizedKnown = normalizeForComparison(knownComposer);
     
     // Check if the known composer name appears in the raw text
-    // This handles cases like "Goodlife Fotis Mylonas" matching "Fotis Mylonas"
     if (normalized.includes(normalizedKnown)) {
-      return knownComposer; // Return the clean, standardized name
+      // Return both the group name (for file organization) and clean name (for COMPOSER column)
+      return {
+        groupName: knownComposer,
+        cleanName: knownComposer
+      };
     }
   }
   
   // If no match found in known list, place in outliers
-  return OUTLIERS_GROUP;
-};
-
-// Detect CSV delimiter by analyzing the first few lines
-const detectDelimiter = (text: string): string => {
-  const firstLines = text.split('\n').slice(0, 3).join('\n');
-  const semicolonCount = (firstLines.match(/;/g) || []).length;
-  const commaCount = (firstLines.match(/,/g) || []).length;
-  
-  // If semicolons are more common, it's likely European format
-  return semicolonCount > commaCount ? ';' : ',';
-};
-
-// Convert European number format (comma as decimal) to standard format (dot as decimal)
-const normalizeNumber = (value: string): string => {
-  if (typeof value !== 'string') return value;
-  
-  // Check if it looks like a European number (has comma as decimal separator)
-  // Examples: "1.234,56" or "1234,56"
-  if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(value.trim())) {
-    // European format: remove thousand separators (dots), replace comma with dot
-    return value.replace(/\./g, '').replace(',', '.');
-  }
-  
-  return value;
+  return {
+    groupName: OUTLIERS_GROUP,
+    cleanName: rawComposerText // Keep original for outliers
+  };
 };
 
 // Helper to read file to raw data
@@ -124,46 +104,18 @@ export const parseFileToRawData = (file: File): Promise<{ headers: string[], dat
     const isCsv = file.name.endsWith('.csv');
 
     if (isCsv) {
-      // Read file as text first to detect delimiter
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        const delimiter = detectDelimiter(text);
-        
-        Papa.parse<RawCsvRow>(text, {
-          header: true,
-          skipEmptyLines: true,
-          delimiter: delimiter,
-          dynamicTyping: false, // Keep as strings to handle European numbers
-          complete: (results) => {
-            if (results.meta.fields) {
-              // Normalize number formats in the data
-              const normalizedData = results.data.map(row => {
-                const normalizedRow: RawCsvRow = {};
-                Object.keys(row).forEach(key => {
-                  const value = row[key];
-                  // Normalize numbers in amount/count columns
-                  if (key.toLowerCase().includes('amount') || 
-                      key.toLowerCase().includes('count') ||
-                      key.toLowerCase().includes('gross')) {
-                    normalizedRow[key] = normalizeNumber(String(value));
-                  } else {
-                    normalizedRow[key] = value;
-                  }
-                });
-                return normalizedRow;
-              });
-              
-              resolve({ headers: results.meta.fields, data: normalizedData });
-            } else {
-              reject(new Error("Could not detect headers in CSV file."));
-            }
-          },
-          error: (error) => reject(error)
-        });
-      };
-      reader.onerror = (err) => reject(err);
-      reader.readAsText(file);
+      Papa.parse<RawCsvRow>(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.meta.fields) {
+            resolve({ headers: results.meta.fields, data: results.data });
+          } else {
+            reject(new Error("Could not detect headers in CSV file."));
+          }
+        },
+        error: (error) => reject(error)
+      });
     } else {
       // Handle XLSX
       const reader = new FileReader();
@@ -174,31 +126,11 @@ export const parseFileToRawData = (file: File): Promise<{ headers: string[], dat
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           
-          const jsonData = XLSX.utils.sheet_to_json<RawCsvRow>(worksheet, { 
-            defval: "",
-            raw: false // Get formatted strings to preserve number formatting
-          });
+          const jsonData = XLSX.utils.sheet_to_json<RawCsvRow>(worksheet, { defval: "" });
           
           if (jsonData.length > 0) {
             const headers = Object.keys(jsonData[0]);
-            
-            // Normalize number formats
-            const normalizedData = jsonData.map(row => {
-              const normalizedRow: RawCsvRow = {};
-              Object.keys(row).forEach(key => {
-                const value = row[key];
-                if (key.toLowerCase().includes('amount') || 
-                    key.toLowerCase().includes('count') ||
-                    key.toLowerCase().includes('gross')) {
-                  normalizedRow[key] = normalizeNumber(String(value));
-                } else {
-                  normalizedRow[key] = value;
-                }
-              });
-              return normalizedRow;
-            });
-            
-            resolve({ headers, data: normalizedData });
+            resolve({ headers, data: jsonData });
           } else {
             reject(new Error("Excel file appears to be empty."));
           }
@@ -227,10 +159,10 @@ export const processRawData = (
         const rawComposerText = rawComposer ? String(rawComposer).trim() : "Unknown Composer";
         
         // Find the actual, normalized composer name
-        const composer = findActualComposer(rawComposerText);
+        const { groupName, cleanName } = findActualComposer(rawComposerText);
         
-        if (!groupMap.has(composer)) {
-          groupMap.set(composer, []);
+        if (!groupMap.has(groupName)) {
+          groupMap.set(groupName, []);
         }
 
         // Filter columns and apply transformations
@@ -242,9 +174,9 @@ export const processRawData = (
           // Map column name for output
           const outputColumnName = COLUMN_MAPPING[col] || col;
           
-          // Replace the composer field with the standardized name
+          // For COMPOSER column, use the clean name instead of raw data
           if (outputColumnName === "COMPOSER") {
-            filteredRow[outputColumnName] = composer;
+            filteredRow[outputColumnName] = cleanName;
           } else {
             filteredRow[outputColumnName] = cellValue;
           }
@@ -253,7 +185,7 @@ export const processRawData = (
         // Add ARTIST column (empty for now, can be filled later)
         filteredRow["ARTIST"] = "";
 
-        groupMap.get(composer)?.push(filteredRow);
+        groupMap.get(groupName)?.push(filteredRow);
       });
 
       // Convert Map to Array
