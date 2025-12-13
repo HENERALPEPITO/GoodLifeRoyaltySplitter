@@ -74,7 +74,7 @@ const normalizeForComparison = (text: string): string => {
 };
 
 // Find the actual composer name from a potentially messy string
-const findActualComposer = (rawComposerText: string): string => {
+const findActualComposer = (rawComposerText: string): { groupName: string; cleanName: string } => {
   const normalized = normalizeForComparison(rawComposerText);
   
   // Try to find a match from known composers
@@ -83,12 +83,19 @@ const findActualComposer = (rawComposerText: string): string => {
     
     // Check if the known composer name appears in the raw text
     if (normalized.includes(normalizedKnown)) {
-      return knownComposer; // Return the clean, known name
+      // Return both the group name (for file organization) and clean name (for COMPOSER column)
+      return {
+        groupName: knownComposer,
+        cleanName: knownComposer
+      };
     }
   }
   
   // If no match found in known list, place in outliers
-  return OUTLIERS_GROUP;
+  return {
+    groupName: OUTLIERS_GROUP,
+    cleanName: rawComposerText // Keep original for outliers
+  };
 };
 
 // Helper to read file to raw data
@@ -152,10 +159,10 @@ export const processRawData = (
         const rawComposerText = rawComposer ? String(rawComposer).trim() : "Unknown Composer";
         
         // Find the actual, normalized composer name
-        const composer = findActualComposer(rawComposerText);
+        const { groupName, cleanName } = findActualComposer(rawComposerText);
         
-        if (!groupMap.has(composer)) {
-          groupMap.set(composer, []);
+        if (!groupMap.has(groupName)) {
+          groupMap.set(groupName, []);
         }
 
         // Filter columns and apply transformations
@@ -166,13 +173,19 @@ export const processRawData = (
           
           // Map column name for output
           const outputColumnName = COLUMN_MAPPING[col] || col;
-          filteredRow[outputColumnName] = cellValue;
+          
+          // For COMPOSER column, use the clean name instead of raw data
+          if (outputColumnName === "COMPOSER") {
+            filteredRow[outputColumnName] = cleanName;
+          } else {
+            filteredRow[outputColumnName] = cellValue;
+          }
         });
 
         // Add ARTIST column (empty for now, can be filled later)
         filteredRow["ARTIST"] = "";
 
-        groupMap.get(composer)?.push(filteredRow);
+        groupMap.get(groupName)?.push(filteredRow);
       });
 
       // Convert Map to Array
