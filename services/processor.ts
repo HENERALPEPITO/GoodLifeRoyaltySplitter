@@ -55,8 +55,6 @@ export const ESSENTIAL_COLUMNS = [
   "Territory",
   "Exploitation Source Name",
   "Usage Count",
-  "Gross Amount",
-  "Administration Amount",
   "Amount"
 ];
 
@@ -231,13 +229,54 @@ export const generateCsvContent = (rows: RawCsvRow[], columns: string[]): string
     "TERRITORY",
     "SOURCE",
     "COUNT",
-    "GROSS AMOUNT",
-    "ADMIN %",
     "NET AMOUNT",
-    "ARTIST"
   ];
   
   return Papa.unparse(rows, {
+    delimiter: "\t",
+    header: true,
+    columns: outputOrder
+  });
+};
+
+export const generateCsvContentWithAdmin = (rows: RawCsvRow[], columns: string[], adminPercent: number): string => {
+  // Transform rows to include calculated columns
+  const transformedRows = rows.map(row => {
+    // Parse the gross amount with full precision
+    const grossAmount = parseFloat(String(row["NET AMOUNT"] || "0")) || 0;
+    
+    // Calculate with full precision
+    const adminAmount = grossAmount * (adminPercent / 100);
+    const netAmount = grossAmount - adminAmount;
+
+    return {
+      "Date From (MM/YYYY)": row["Date From (MM/YYYY)"] || "",
+      "Date To (MM/YYYY)": row["Date To (MM/YYYY)"] || "",
+      "Song Title": row["TITLE"] || "",
+      "Song Composer(s)": row["COMPOSER"] || "",
+      "Territory": row["TERRITORY"] || "",
+      "Exploitation Source Name": row["SOURCE"] || "",
+      "Usage Count": row["COUNT"] || "",
+      "Gross Amount": grossAmount.toString(),
+      "Administration Amount": adminAmount.toString(),
+      "Net Amount": netAmount.toString()
+    };
+  });
+
+  const outputOrder = [
+    "Date From (MM/YYYY)",
+    "Date To (MM/YYYY)",
+    "Song Title",
+    "Song Composer(s)",
+    "Territory",
+    "Exploitation Source Name",
+    "Usage Count",
+    "Gross Amount",
+    "Administration Amount",
+    "Net Amount"
+  ];
+
+  return Papa.unparse(transformedRows, {
     delimiter: "\t",
     header: true,
     columns: outputOrder

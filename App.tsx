@@ -6,7 +6,7 @@ import JSZip from 'jszip';
 import FileUpload from './components/FileUpload';
 import ComposerCard from './components/ArtistCard';
 import ColumnSelector from './components/ColumnSelector';
-import { parseFileToRawData, processRawData, generateCsvContent, MANDATORY_COLUMN, ESSENTIAL_COLUMNS } from './services/processor';
+import { parseFileToRawData, processRawData, generateCsvContentWithAdmin, MANDATORY_COLUMN, ESSENTIAL_COLUMNS } from './services/processor';
 import { AppState, ProcessedComposerData, ProcessingStats, RawCsvRow } from './types';
 
 function App() {
@@ -107,12 +107,13 @@ function App() {
   };
 
   const handleDownloadAllZip = async () => {
-    const zip = new JSZip();
-    
-    processedData.forEach(composer => {
-      const content = generateCsvContent(composer.rows, selectedColumns);
-      zip.file(composer.filename, content);
-    });
+  const defaultAdminPercent = 15;
+  const zip = new JSZip();
+  
+  processedData.forEach(composer => {
+    const content = generateCsvContentWithAdmin(composer.rows, selectedColumns, defaultAdminPercent);
+    zip.file(composer.filename, content);
+  });
 
     const content = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(content);
