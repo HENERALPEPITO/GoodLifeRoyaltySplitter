@@ -282,3 +282,60 @@ export const generateCsvContentWithAdmin = (rows: RawCsvRow[], columns: string[]
     columns: outputOrder
   });
 };
+
+// Add this function to your processor.ts file, after generateCsvContentWithAdmin
+
+// Add this function to your processor.ts file, after generateCsvContentWithAdmin
+
+export const generateCsvContentWithDualPercentage = (
+  rows: RawCsvRow[], 
+  columns: string[], 
+  adminPercent: number,
+  platformPercent: number
+): string => {
+  // Transform rows to include calculated columns
+  const transformedRows = rows.map(row => {
+    // Parse the original amount (what was previously NET AMOUNT)
+    const originalAmount = parseFloat(String(row["NET AMOUNT"] || "0")) || 0;
+    
+    // First calculation: Admin percentage
+    const adminAmount = originalAmount * (adminPercent / 100);
+    const afterAdmin = originalAmount - adminAmount;
+    
+    // Second calculation: Platform percentage (from the net after admin)
+    const platformAmount = afterAdmin * (platformPercent / 100);
+    const finalNet = afterAdmin - platformAmount;
+
+    return {
+      "Song Title": row["TITLE"] || "",
+      "ISWC": row["ISWC"] || "",
+      "Composer": row["COMPOSER"] || "",
+      "Date": row["Date From (MM/YYYY)"] || "",
+      "Territory": row["TERRITORY"] || "",
+      "Source": row["SOURCE"] || "",
+      "Usage Count": row["COUNT"] || "",
+      "Gross": afterAdmin.toString(),  // Show amount after admin as "Gross"
+      "Admin %": platformAmount.toString(),  // Show platform amount as "Admin %"
+      "Net": finalNet.toString()  // Show final net amount
+    };
+  });
+
+  const outputOrder = [
+    "Song Title",
+    "ISWC",
+    "Composer",
+    "Date",
+    "Territory",
+    "Source",
+    "Usage Count",
+    "Gross",
+    "Admin %",
+    "Net"
+  ];
+
+  return Papa.unparse(transformedRows, {
+    delimiter: "\t",
+    header: true,
+    columns: outputOrder
+  });
+};
