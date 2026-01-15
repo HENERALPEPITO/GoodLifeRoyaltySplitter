@@ -106,24 +106,33 @@ function App() {
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  // Replace the handleDownloadAllZip function in App.tsx with this updated version
+
   const handleDownloadAllZip = async () => {
   const defaultAdminPercent = 15;
+  const defaultPlatformPercent = 10; // Add default platform percentage
   const zip = new JSZip();
   
   processedData.forEach(composer => {
-    const content = generateCsvContentWithAdmin(composer.rows, selectedColumns, defaultAdminPercent);
+    // Use the new dual percentage function
+    const content = generateCsvContentWithDualPercentage(
+      composer.rows, 
+      selectedColumns, 
+      defaultAdminPercent,
+      defaultPlatformPercent
+    );
     zip.file(composer.filename, content);
   });
 
-    const content = await zip.generateAsync({ type: "blob" });
-    const url = URL.createObjectURL(content);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `royalties_split_composers_${new Date().toISOString().slice(0, 10)}.zip`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const content = await zip.generateAsync({ type: "blob" });
+  const url = URL.createObjectURL(content);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `royalties_split_composers_${new Date().toISOString().slice(0, 10)}.zip`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-100">

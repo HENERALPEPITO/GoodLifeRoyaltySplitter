@@ -282,3 +282,62 @@ export const generateCsvContentWithAdmin = (rows: RawCsvRow[], columns: string[]
     columns: outputOrder
   });
 };
+
+// Add this function to your processor.ts file, after generateCsvContentWithAdmin
+
+export const generateCsvContentWithDualPercentage = (
+  rows: RawCsvRow[], 
+  columns: string[], 
+  adminPercent: number,
+  platformPercent: number
+): string => {
+  // Transform rows to include calculated columns
+  const transformedRows = rows.map(row => {
+    // Parse the original amount (what was previously NET AMOUNT)
+    const originalAmount = parseFloat(String(row["NET AMOUNT"] || "0")) || 0;
+    
+    // First calculation: Admin percentage
+    const adminAmount = originalAmount * (adminPercent / 100);
+    const afterAdmin = originalAmount - adminAmount;
+    
+    // Second calculation: Platform percentage (from the net after admin)
+    const platformAmount = afterAdmin * (platformPercent / 100);
+    const finalNet = afterAdmin - platformAmount;
+
+    return {
+      "Date From (MM/YYYY)": row["Date From (MM/YYYY)"] || "",
+      "Date To (MM/YYYY)": row["Date To (MM/YYYY)"] || "",
+      "Song Title": row["TITLE"] || "",
+      "Song Composer(s)": row["COMPOSER"] || "",
+      "Territory": row["TERRITORY"] || "",
+      "Exploitation Source Name": row["SOURCE"] || "",
+      "Usage Count": row["COUNT"] || "",
+      "Gross Amount": originalAmount.toString(),
+      "Administration Amount": adminAmount.toString(),
+      "Amount After Admin": afterAdmin.toString(),
+      "Platform Amount": platformAmount.toString(),
+      "Net Amount": finalNet.toString()
+    };
+  });
+
+  const outputOrder = [
+    "Date From (MM/YYYY)",
+    "Date To (MM/YYYY)",
+    "Song Title",
+    "Song Composer(s)",
+    "Territory",
+    "Exploitation Source Name",
+    "Usage Count",
+    "Gross Amount",
+    "Administration Amount",
+    "Amount After Admin",
+    "Platform Amount",
+    "Net Amount"
+  ];
+
+  return Papa.unparse(transformedRows, {
+    delimiter: "\t",
+    header: true,
+    columns: outputOrder
+  });
+};
