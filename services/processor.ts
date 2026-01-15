@@ -285,6 +285,8 @@ export const generateCsvContentWithAdmin = (rows: RawCsvRow[], columns: string[]
 
 // Add this function to your processor.ts file, after generateCsvContentWithAdmin
 
+// Add this function to your processor.ts file, after generateCsvContentWithAdmin
+
 export const generateCsvContentWithDualPercentage = (
   rows: RawCsvRow[], 
   columns: string[], 
@@ -305,34 +307,30 @@ export const generateCsvContentWithDualPercentage = (
     const finalNet = afterAdmin - platformAmount;
 
     return {
-      "Date From (MM/YYYY)": row["Date From (MM/YYYY)"] || "",
-      "Date To (MM/YYYY)": row["Date To (MM/YYYY)"] || "",
       "Song Title": row["TITLE"] || "",
-      "Song Composer(s)": row["COMPOSER"] || "",
+      "ISWC": row["ISWC"] || "",
+      "Composer": row["COMPOSER"] || "",
+      "Date": row["Date From (MM/YYYY)"] || "",
       "Territory": row["TERRITORY"] || "",
-      "Exploitation Source Name": row["SOURCE"] || "",
+      "Source": row["SOURCE"] || "",
       "Usage Count": row["COUNT"] || "",
-      "Gross Amount": originalAmount.toString(),
-      "Administration Amount": adminAmount.toString(),
-      "Amount After Admin": afterAdmin.toString(),
-      "Platform Amount": platformAmount.toString(),
-      "Net Amount": finalNet.toString()
+      "Gross": afterAdmin.toString(),  // Show amount after admin as "Gross"
+      "Admin %": platformAmount.toString(),  // Show platform amount as "Admin %"
+      "Net": finalNet.toString()  // Show final net amount
     };
   });
 
   const outputOrder = [
-    "Date From (MM/YYYY)",
-    "Date To (MM/YYYY)",
     "Song Title",
-    "Song Composer(s)",
+    "ISWC",
+    "Composer",
+    "Date",
     "Territory",
-    "Exploitation Source Name",
+    "Source",
     "Usage Count",
-    "Gross Amount",
-    "Administration Amount",
-    "Amount After Admin",
-    "Platform Amount",
-    "Net Amount"
+    "Gross",
+    "Admin %",
+    "Net"
   ];
 
   return Papa.unparse(transformedRows, {
