@@ -7,7 +7,7 @@ export const MANDATORY_COLUMN = "Song Composer(s)";
 // Reference list of known composers
 const KNOWN_COMPOSERS = [
   "Almos Balla",
-  "MESHACH ANDRAWES",
+  "ANDRAWES MESHACH",
   "FELIX SCHUBERT",
   "Utkarsh Vaishnav",
   "Fotis Mylonas",
@@ -20,14 +20,17 @@ const KNOWN_COMPOSERS = [
   "Andrew Sho Neville",
   "Jesus Enrique Fernandez Sanchez",
   "Milton Sabas Martinez Santos",
+  "Dennis Mauricio de la Torre  Suarez",
   "Andres Romario Rubio Manzano",
+  "Renaldas Aleinikovas",
   "LATIN HOUSE GANG",
   "Ian Michael Bernal Moreira",
   "Raul Ivan Garcia Marin",
   "Jesus Alberto Lopez Vazquez",
   "Norinobu Yu",
   "Jorge Pardo Cordero",
-  "DMITRY BYSTROV"
+  "DMITRY BYSTROV",
+  "AbdelNaser Mohammad A Alhusaini"
 ];
 
 const OUTLIERS_GROUP = "Good Life Composers Outliers";
