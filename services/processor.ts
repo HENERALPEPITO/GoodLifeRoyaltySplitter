@@ -30,7 +30,10 @@ const KNOWN_COMPOSERS = [
   "Norinobu Yu",
   "Jorge Pardo Cordero",
   "DMITRY BYSTROV",
-  "AbdelNaser Mohammad A Alhusaini"
+  "AbdelNaser Mohammad A Alhusaini",
+  "Nicolae Purice Ion Tudor Dds",
+  "Marcos Julian Galan Gil",
+  "YU NORINOBU"
 ];
 
 const OUTLIERS_GROUP = "Good Life Composers Outliers";
