@@ -33,7 +33,11 @@ const KNOWN_COMPOSERS = [
   "AbdelNaser Mohammad A Alhusaini",
   "Nicolae Purice Ion Tudor Dds",
   "Marcos Julian Galan Gil",
-  "YU NORINOBU"
+  "YU NORINOBU",
+  "Tiberiu Niculae",
+  "Andres Romario Manzano Rubio",
+  "Dennis Mauricio De la Torre Suarez",
+  "Finn Bottcher"
 ];
 
 const OUTLIERS_GROUP = "Good Life Composers Outliers";
