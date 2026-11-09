@@ -37,7 +37,8 @@ const KNOWN_COMPOSERS = [
   "Tiberiu Niculae",
   "Andres Romario Manzano Rubio",
   "Dennis Mauricio De la Torre Suarez",
-  "Finn Bottcher"
+  "Finn Bottcher",
+  "Jonathan Jose Menay Funes"
 ];
 
 const OUTLIERS_GROUP = "Good Life Composers Outliers";
